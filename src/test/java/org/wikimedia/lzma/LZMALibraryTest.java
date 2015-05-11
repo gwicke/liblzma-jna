@@ -28,7 +28,7 @@ public class LZMALibraryTest {
 
         // Encoding ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         stream = new LZMAStream();
-        assertReturnOK(LZMALibrary.lzma_easy_encoder(stream, 1, LZMACheck.CRC64.getCode()));
+        assertReturnOK(LZMALibrary.CLibrary.INSTANCE.lzma_easy_encoder(stream, 1, LZMACheck.CRC64.getCode()));
 
         // Obtain a ByteBuffer that is mapped to the pointer, and write the test
         // data to it.
@@ -48,7 +48,7 @@ public class LZMALibraryTest {
 
         while (true) {
             loopCount += 1;
-            int code = LZMALibrary.lzma_code(stream, LZMAAction.FINISH.getCode());
+            int code = LZMALibrary.CLibrary.INSTANCE.lzma_code(stream, LZMAAction.FINISH.getCode());
             LZMAReturn ret = LZMAReturn.fromCode(code);
 
             // When the buffer is filled, or when the end of stream is reached
@@ -95,7 +95,7 @@ public class LZMALibraryTest {
             e.printStackTrace();
         }
 
-        LZMALibrary.lzma_end(stream);
+        LZMALibrary.CLibrary.INSTANCE.lzma_end(stream);
 
         // Decoding ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         // ...

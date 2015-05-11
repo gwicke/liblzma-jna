@@ -7,7 +7,7 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 import com.sun.jna.IntegerType;
-import com.sun.jna.LastErrorException;
+import com.sun.jna.Library;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
@@ -18,19 +18,15 @@ public class LZMALibrary {
 
     public static final int BUFSIZE = 8192;
 
-    static {
-        Native.register("lzma");
-        // Native.setProtected(true);
+    public interface CLibrary extends Library {
+        CLibrary INSTANCE = (CLibrary)Native.loadLibrary("lzma", CLibrary.class);
+        
+        int lzma_stream_decoder(LZMAStream strm, long memlimit, int flags);
+        void lzma_end(LZMAStream strm);
+        int lzma_code(LZMAStream strm, int action);
+        int lzma_easy_encoder(LZMAStream strm, int preset, int check);
     }
-
-    public static native int lzma_stream_decoder(LZMAStream strm, long memlimit, int flags) throws LastErrorException;
-
-    public static native void lzma_end(LZMAStream strm) throws LastErrorException;
-
-    public static native int lzma_code(LZMAStream strm, int action) throws LastErrorException;
-
-    public static native int lzma_easy_encoder(LZMAStream strm, int preset, int check) throws LastErrorException;
-
+    
     /** analog to lzma_stream */
     public static class LZMAStream extends Structure {
         public Pointer next_in = new Memory(BUFSIZE);
