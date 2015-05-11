@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import com.sun.jna.Pointer;
 
 import org.junit.Test;
 import org.wikimedia.lzma.LZMALibrary.LZMAAction;
@@ -17,7 +18,6 @@ import org.wikimedia.lzma.LZMALibrary.LZMAReturn;
 import org.wikimedia.lzma.LZMALibrary.LZMAStream;
 
 import com.google.common.io.BaseEncoding;
-import com.sun.jna.NativeLong;
 
 public class LZMALibraryTest {
 
@@ -37,12 +37,17 @@ public class LZMALibraryTest {
         input.flip();
         int inputSize = input.remaining();
 
+        compressed = stream.next_out.getByteBuffer(0, LZMALibrary.BUFSIZE);
+        compressed.put("out".getBytes());
+
         // Buffer to copy compressed output to.
         compressed = ByteBuffer.allocate(LZMALibrary.BUFSIZE);
 
-        stream.avail_in = new NativeLong(inputSize);
-        stream.avail_out = new NativeLong(LZMALibrary.BUFSIZE);
-        int totalOut = 0, writeSize, loopCount = 0;
+        stream.avail_in = (long)inputSize;
+        stream.avail_out = (long)LZMALibrary.BUFSIZE;
+        int totalOut = 0, loopCount = 0;
+        long writeSize;
+        Pointer out_ptr = stream.next_out;
 
         System.out.println("before compress loop: " + stream);
 
@@ -52,12 +57,14 @@ public class LZMALibraryTest {
             LZMAReturn ret = LZMAReturn.fromCode(code);
 
             // When the buffer is filled, or when the end of stream is reached
-            if (stream.avail_out.intValue() == 0 || ret.equals(LZMAReturn.STREAM_END)) {
-                writeSize = LZMALibrary.BUFSIZE - stream.avail_out.intValue();
-                ByteBuffer nextOut = stream.next_out.getByteBuffer(0, writeSize);
-                assertThat(writeSize, equalTo(nextOut.remaining()));
+            if (stream.avail_out == 0 || ret.equals(LZMAReturn.STREAM_END)) {
+                writeSize = (long)LZMALibrary.BUFSIZE - stream.avail_out;
+                ByteBuffer nextOut = out_ptr.getByteBuffer(0, writeSize);
+                assertThat((int)writeSize, equalTo(nextOut.remaining()));
+                assertThat(writeSize, equalTo(stream.total_out));
                 totalOut += nextOut.remaining();
                 compressed.put(nextOut);
+                stream.next_out = out_ptr;
             }
 
             // If OK, we'll loop again
@@ -73,7 +80,7 @@ public class LZMALibraryTest {
 
         compressed.flip();
 
-        assertThat(stream.avail_in.intValue(), equalTo(0));
+        assertThat((int)stream.avail_in, equalTo(0));
         assertThat((int) stream.total_in, equalTo(inputSize));
         assertThat(totalOut, equalTo(compressed.remaining()));
         assertThat(compressed.remaining(), is(equalTo((int) stream.total_out)));
@@ -82,7 +89,7 @@ public class LZMALibraryTest {
 
         // Copy compressed data into an array for debug printing.
         byte[] dst = new byte[compressed.remaining()];
-        compressed.slice().get(dst, 0, compressed.remaining());
+        compressed.get(dst, 0, compressed.remaining());
         System.out.printf("%n%d bytes of compressed data (as hex):%n", dst.length);
         System.out.println(BaseEncoding.base16().encode(dst));
         System.out.println("Should begin w/ magic header: FD 37 7A 58 5A 00 ^^^^^^");

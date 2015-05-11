@@ -10,7 +10,6 @@ import com.sun.jna.IntegerType;
 import com.sun.jna.LastErrorException;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
-import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
@@ -34,10 +33,10 @@ public class LZMALibrary {
     /** analog to lzma_stream */
     public static class LZMAStream extends Structure {
         public Pointer next_in = new Memory(BUFSIZE);
-        public NativeLong avail_in;
+        public long avail_in;
         public long total_in;
         public Pointer next_out = new Memory(BUFSIZE);
-        public NativeLong avail_out;
+        public long avail_out;
         public long total_out;
         public Pointer allocator;
         public Pointer internal;
@@ -47,10 +46,14 @@ public class LZMALibrary {
         public Pointer reserved_ptr4;
         public long reserved_int1;
         public long reserved_int2;
-        public NativeLong reserved_int3;
-        public NativeLong reserved_int4;
-        public int reserved_enum1;
-        public int reserved_enum2;
+        public long reserved_int3;
+        public long reserved_int4;
+        public long reserved_enum1;
+        public long reserved_enum2;
+
+        public LZMAStream() {
+            setAlignType(ALIGN_GNUC);
+        }
 
         @Override
         protected List<String> getFieldOrder() {
@@ -73,17 +76,6 @@ public class LZMALibrary {
                     "reserved_int4",
                     "reserved_enum1",
                     "reserved_enum2", });
-        }
-    }
-
-    @SuppressWarnings("serial")
-    public static class size_t extends IntegerType {
-        public size_t() {
-            this(0);
-        }
-
-        public size_t(long value) {
-            super(Native.SIZE_T_SIZE, value, true);
         }
     }
 
